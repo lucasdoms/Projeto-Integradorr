@@ -25,7 +25,7 @@ class MainApplication(ThemedTk):
         background_color = "#474747"
         self.configure(background=background_color)
 
-        # Inicialização do banco de dados
+        # Inicialização do bd
         self.init_db()
 
         welcome_frame = ttk.Frame(self, style="TFrame")
@@ -65,10 +65,10 @@ class MainApplication(ThemedTk):
         buttons_frame.columnconfigure(1, weight=1)
 
     def init_db(self):
-        # Criar uma conexão com o banco de dados
+        # Cria uma conexão com o banco de dados
         self.conn = sqlite3.connect('gerenciamento.db')
         self.cur = self.conn.cursor()
-        # Criar as tabelas se não existirem
+        # Cria as tabelas 
         self.cur.execute('''
             CREATE TABLE IF NOT EXISTS produtos (
                 id_produto INTEGER PRIMARY KEY,
@@ -92,7 +92,7 @@ class MainApplication(ThemedTk):
         self.conn.commit()
 
     def realizar_venda(self):
-        # Criar uma nova janela
+        # Cria uma nova janela
         venda_window = tk.Toplevel(self)
         venda_window.title("Realizar Venda")
         venda_window.geometry("600x400")
@@ -182,7 +182,7 @@ class MainApplication(ThemedTk):
                 "Erro", "Por favor, preencha todas as informações necessárias.")
             return
 
-        # Calcular o valor total da venda
+        # Calcula o valor total da venda
         valor_total = 0
         for produto, quantidade in self.produtos_venda:
             self.cur.execute(
@@ -190,25 +190,25 @@ class MainApplication(ThemedTk):
             preco_produto = self.cur.fetchone()[0]
             valor_total += preco_produto * quantidade
 
-        # Inserir a venda no banco de dados
+        # Insere a venda no banco de dados
         venda_info = (nome_cliente, endereco, telefone,
                       valor_total, metodo_pagamento, data_venda)
         self.cur.execute(
             "INSERT INTO vendas (nome_cliente, endereço, telefone, valor_venda, metodo_de_pagamento, data_da_venda) VALUES (?, ?, ?, ?, ?, ?)", venda_info)
 
-        # ID da venda recém-criada
+        # ID da venda criada
         id_venda = self.cur.lastrowid
 
-        # Atualizar a quantidade de produtos no estoque e registrar os detalhes da venda
+        # Atualiza a quantidade de produtos no estoque e registrar os detalhes da venda
         for produto, quantidade in self.produtos_venda:
-            # Atualizar estoque
+            # Atualiza o estoque
             self.cur.execute(
                 "UPDATE produtos SET quantidade = quantidade - ? WHERE nome_produto = ?", (quantidade, produto))
 
-        # Confirmar as transações
+        # Confirma as transações
         self.conn.commit()
 
-        # Limpar a interface da venda
+        # Limpa a interface da venda
         self.produtos_venda.clear()
         self.atualizar_lista_produtos()
         for entry in self.venda_entries.values():
@@ -220,12 +220,12 @@ class MainApplication(ThemedTk):
         tk.messagebox.showinfo("Sucesso", "Venda finalizada com sucesso!")
 
     def visualizar_estoque(self):
-        # Criar uma nova janela
+        # Cria uma nova janela
         estoque_window = tk.Toplevel(self)
         estoque_window.title("Estoque de Produtos")
         estoque_window.geometry("900x600")  # Ajuste conforme necessário
 
-        # Adicionar um treeview para exibir os produtos em estoque
+        # Adiciona um treeview para exibir os produtos em estoque
         columns = ('Id_produto', 'nome_produto',
                    'preço_produto', 'quantidade', 'descrição')
         estoque_tree = ttk.Treeview(
@@ -243,32 +243,30 @@ class MainApplication(ThemedTk):
         estoque_tree.column('quantidade', width=100)
         estoque_tree.column('descrição', width=300)
 
-        # Buscar dados dos produtos no banco de dados
+        # Busca dados dos produtos no bd
         self.cur.execute("SELECT * FROM produtos")
         rows = self.cur.fetchall()
 
-        # Preencher o treeview com os dados dos produtos
+        # Preenche o treeview com os dados dos produtos
         for row in rows:
             estoque_tree.insert('', tk.END, values=row)
 
-        # Adicionar barra de rolagem (opcional)
         scrollbar = ttk.Scrollbar(
             estoque_window, orient=tk.VERTICAL, command=estoque_tree.yview)
         estoque_tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side='right', fill='y')
 
     def visualizar_vendas(self):
-        # Criar uma nova janela
+        # Cria uma nova janela
         vendas_window = tk.Toplevel(self)
         vendas_window.title("Vendas Realizadas")
         vendas_window.geometry("1000x600")  # Ajuste conforme necessário
 
-        # Adicionar um Treeview para exibir as vendas realizadas
+        # Adiciona um Treeview para exibir as vendas realizadas
         columns = ('id_venda', 'nome_cliente', 'endereço',
                    'telefone', 'valor_venda', 'data_da_venda')
         vendas_tree = ttk.Treeview(
             vendas_window, columns=columns, show='headings')
-        # Ajustar conforme necessário
         vendas_tree.pack(expand=True, fill='both', side='left')
 
         # Definir os cabeçalhos do Treeview
@@ -277,24 +275,21 @@ class MainApplication(ThemedTk):
             # Ajustar a largura conforme necessário
             vendas_tree.column(col, width=150)
 
-        # Buscar dados das vendas no banco de dados
+        # Busca dados das vendas no bd
         self.cur.execute("SELECT * FROM vendas")
         vendas_rows = self.cur.fetchall()
 
-        # Preencher o Treeview com os dados das vendas
+        # Preenchee o Treeview com os dados das vendas
         for row in vendas_rows:
             vendas_tree.insert('', tk.END, values=row, tags=('venda',))
 
-        # Adicionar barra de rolagem
         scrollbar = ttk.Scrollbar(
             vendas_window, orient='vertical', command=vendas_tree.yview)
         vendas_tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side='right', fill='y')
-
-        # Definir evento para quando uma venda for selecionada
         vendas_tree.bind('<<TreeviewSelect>>', self.exibir_detalhes_venda)
 
-        # Frame para exibir os detalhes dos produtos de uma venda selecionada
+        # Exibe os detalhes dos produtos de uma venda selecionada
         self.detalhes_venda_frame = ttk.Frame(vendas_window)
         self.detalhes_venda_frame.pack(expand=True, fill='both', side='right')
         self.detalhes_venda_label = ttk.Label(
@@ -310,7 +305,6 @@ class MainApplication(ThemedTk):
             item = event.widget.item(selected_item)
             id_venda = item['values'][0]  # Pega o ID da venda selecionada
 
-            # Adicionando título ao frame de detalhes
             ttk.Label(self.detalhes_venda_frame, text=f"Detalhes da Venda {id_venda}", font=(
                 'Arial', 12, 'bold')).pack()
 
@@ -332,7 +326,7 @@ class MainApplication(ThemedTk):
                           text="Nenhum produto encontrado para esta venda.").pack()
 
     def cadastrar_produto(self):
-        # Criar uma nova janela
+        # Cria uma nova janela
         cadastro_window = tk.Toplevel(self)
         cadastro_window.title("Cadastrar Produto")
         cadastro_window.geometry("700x500")  # Ajuste conforme necessário
@@ -352,7 +346,6 @@ class MainApplication(ThemedTk):
             entry.pack(side=tk.RIGHT, expand=True, fill=tk.X)
             self.produto_entries[campo] = entry
 
-        # Configurando a cor de fundo da janela de cadastro
         cadastro_window.configure(background=background_color)
 
         # Botão para salvar o novo produto
@@ -363,11 +356,11 @@ class MainApplication(ThemedTk):
             widget.configure(background=background_color)
 
     def salvar_produto(self):
-        # Coletar os dados do formulário
+        # Coleta os dados do formulário
         dados_produto = {campo: entry.get()
                          for campo, entry in self.produto_entries.items()}
 
-        # Inserir o novo produto no banco de dados
+        # Insere o novo produto no banco de dados
         try:
             with self.conn:
                 self.conn.execute("""
@@ -380,7 +373,7 @@ class MainApplication(ThemedTk):
             tk.messagebox.showerror(
                 "Erro", f"Não foi possível cadastrar o produto: {e}")
         finally:
-            # Limpar os campos do formulário
+            # Limpa os campos do formulário
             for entry in self.produto_entries.values():
                 entry.delete(0, tk.END)
 
@@ -406,7 +399,7 @@ class MainApplication(ThemedTk):
             inicio_cal.get_date(), fim_cal.get_date())).pack()
 
     def criar_relatorio(self, data_inicio, data_fim):
-        # Formatando as datas para evitar problemas com o nome do arquivo
+        # Formatando as datas
         data_inicio_formatada = data_inicio.replace('/', '-')
         data_fim_formatada = data_fim.replace('/', '-')
 
@@ -416,10 +409,10 @@ class MainApplication(ThemedTk):
             WHERE data_da_venda BETWEEN ? AND ?""", (data_inicio, data_fim))
         vendas = self.cur.fetchall()
 
-        # Calcular o valor total das vendas no período
+        # Calcula o valor total das vendas no período
         valor_total = sum([venda[4] for venda in vendas])
 
-        # Gerar o relatório PDF
+        # Gera o relatório PDF
         relatorio_nome = f"relatorio_{data_inicio_formatada}_a_{data_fim_formatada}.pdf"
         c = canvas.Canvas(relatorio_nome, pagesize=letter)
         c.drawString(
@@ -434,7 +427,7 @@ class MainApplication(ThemedTk):
         c.drawString(100, altura, f"Valor total das vendas: {valor_total}")
         c.save()
 
-        # Abrir o relatório gerado após a criação
+        # Abre o relatório gerado após a criação
         if os.path.exists(relatorio_nome):
             os.startfile(relatorio_nome)
         else:
@@ -442,7 +435,7 @@ class MainApplication(ThemedTk):
                 "Erro", "Não foi possível gerar o relatório.")
 
     def caixa(self):
-        # Criar uma nova janela
+        # Cria uma nova janela
         caixa_window = tk.Toplevel(self)
         caixa_window.title("Caixa")
         caixa_window.geometry("400x300")
@@ -450,33 +443,33 @@ class MainApplication(ThemedTk):
         background_color = "#474747"
         caixa_window.configure(background=background_color)
 
-        # Adicionando um Treeview para exibir as vendas realizadas
+        # Adiciona um Treeview para exibir as vendas realizadas
         columns = ('id_venda', 'valor_venda')
         vendas_tree = ttk.Treeview(
             caixa_window, columns=columns, show='headings')
         vendas_tree.pack(expand=True, fill='both')
 
-        # Definindo os cabeçalhos do Treeview
+        # Define os cabeçalhos do Treeview
         vendas_tree.heading('id_venda', text='ID da Venda')
         vendas_tree.heading('valor_venda', text='Valor da Venda')
 
-        # Buscar dados das vendas no banco de dados
+        # Busca os dados das vendas no bd
         self.cur.execute("SELECT id_venda, valor_venda FROM vendas")
         vendas_rows = self.cur.fetchall()
 
-        # Preencher com os dados das vendas
+        # Preenche com os dados 
         for row in vendas_rows:
             vendas_tree.insert('', tk.END, values=row)
 
-        # Calcular o valor total das vendas
+        # Calcula o valor total das vendas
         total_vendas = sum(venda[1] for venda in vendas_rows)
 
-        # Mostrar o valor total
+        # Mostra o valor total
         total_label = tk.Label(
             caixa_window, text=f"Total no Caixa: R${total_vendas:.2f}", bg=background_color, fg="white")
         total_label.pack(pady=10)
 
 
-# Executar a aplicação
+# Executa a aplicação
 app = MainApplication()
 app.mainloop()
